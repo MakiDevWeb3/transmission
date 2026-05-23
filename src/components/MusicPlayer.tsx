@@ -17,6 +17,7 @@ export default function MusicPlayer() {
     const saved = localStorage.getItem("mp-vol");
     return saved !== null ? Number(saved) : 1;
   });
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const playingRef = useRef(false);
@@ -25,8 +26,11 @@ export default function MusicPlayer() {
   const animFrameRef = useRef<number>(0);
   const ctxReadyRef = useRef(false);
   const smoothRef = useRef<Float32Array>(new Float32Array(BAR_COUNT));
+  const volumeRef = useRef(volume);
+  const hasAutoStartedRef = useRef(false);
 
   useEffect(() => { playingRef.current = playing; }, [playing]);
+  useEffect(() => { volumeRef.current = volume; }, [volume]);
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -103,17 +107,9 @@ export default function MusicPlayer() {
     if (ctx.state === "suspended") await ctx.resume();
   }, []);
 
-  // Muted autoplay — browsers allow muted audio without user gesture
+  // Unmute on first interaction
   useEffect(() => {
-    if (!tracks.length || !audioRef.current) return;
-
-    const audio = audioRef.current;
-    audio.muted = true;
-    audio.play()
-      .then(() => setPlaying(true))
-      .catch(() => {});
-
-    // First interaction: unmute + start AudioContext + visualizer
+    if (!tracks.length) return;
     const ac = new AbortController();
     const onInteract = async () => {
       ac.abort();
@@ -124,14 +120,64 @@ export default function MusicPlayer() {
       await ensureAudioCtx();
       startViz();
     };
-
     const { signal } = ac;
     document.addEventListener("click", onInteract, { signal });
     document.addEventListener("keydown", onInteract, { signal });
     document.addEventListener("touchstart", onInteract, { signal });
-
     return () => ac.abort();
   }, [tracks, ensureAudioCtx, startViz]);
+
+  // Track change + initial muted autoplay (consolidated to fix race with src)
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !tracks[currentIdx]) return;
+
+    const was = playingRef.current;
+    const wasMuted = audio.muted;
+    const isFirstLoad = !hasAutoStartedRef.current;
+
+    setProgress(0);
+
+    const loadAndPlay = (shouldPlay: boolean, startMuted: boolean) => {
+      audio.src = `${import.meta.env.BASE_URL}music/${encodeURIComponent(tracks[currentIdx].file)}`;
+      audio.muted = startMuted;
+      audio.volume = 0;
+      audio.load();
+      if (shouldPlay) {
+        audio.play()
+          .then(() => {
+            setPlaying(true);
+            const target = volumeRef.current;
+            let v = 0;
+            const fadeIn = () => {
+              v = Math.min(v + 0.05, target);
+              audio.volume = v;
+              if (v < target) requestAnimationFrame(fadeIn);
+            };
+            requestAnimationFrame(fadeIn);
+          })
+          .catch(() => {});
+      }
+    };
+
+    if (isFirstLoad) {
+      hasAutoStartedRef.current = true;
+      // Muted autoplay — always succeeds, no user gesture needed
+      loadAndPlay(true, true);
+    } else if (was && !audio.paused) {
+      // Crossfade: fade out then switch
+      let v = audio.volume;
+      const fadeOut = () => {
+        v = Math.max(v - 0.05, 0);
+        audio.volume = v;
+        if (v > 0) requestAnimationFrame(fadeOut);
+        else loadAndPlay(true, wasMuted);
+      };
+      requestAnimationFrame(fadeOut);
+    } else {
+      loadAndPlay(was, wasMuted);
+    }
+  }, [currentIdx, tracks]);
 
   const togglePlay = async () => {
     if (!audioRef.current || !tracks.length) return;
@@ -159,46 +205,6 @@ export default function MusicPlayer() {
   const go = useCallback((dir: 1 | -1) => {
     setCurrentIdx((i) => (i + dir + tracks.length) % tracks.length);
   }, [tracks.length]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !tracks[currentIdx]) return;
-    const was = playingRef.current;
-    const wasMuted = audio.muted;
-    const targetVol = audio.volume;
-
-    const load = () => {
-      audio.src = `${import.meta.env.BASE_URL}music/${encodeURIComponent(tracks[currentIdx].file)}`;
-      audio.muted = wasMuted;
-      audio.volume = 0;
-      audio.load();
-      if (was) {
-        audio.play().catch(() => {});
-        // Fade in
-        let v = 0;
-        const step = () => {
-          v = Math.min(v + 0.05, targetVol);
-          audio.volume = v;
-          if (v < targetVol) requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
-      }
-    };
-
-    if (was && !audio.paused) {
-      // Fade out current track then switch
-      let v = audio.volume;
-      const step = () => {
-        v = Math.max(v - 0.05, 0);
-        audio.volume = v;
-        if (v > 0) requestAnimationFrame(step);
-        else load();
-      };
-      requestAnimationFrame(step);
-    } else {
-      load();
-    }
-  }, [currentIdx, tracks]);
 
   useEffect(() => () => cancelAnimationFrame(animFrameRef.current), []);
 
