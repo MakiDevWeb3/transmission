@@ -12,7 +12,10 @@ export default function MusicPlayer() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
-  const [volume, setVolume] = useState(1);
+  const [volume, setVolume] = useState(() => {
+    const saved = localStorage.getItem("mp-vol");
+    return saved !== null ? Number(saved) : 1;
+  });
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const playingRef = useRef(false);
@@ -23,6 +26,10 @@ export default function MusicPlayer() {
   const smoothRef = useRef<Float32Array>(new Float32Array(BAR_COUNT));
 
   useEffect(() => { playingRef.current = playing; }, [playing]);
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}music/playlist.json`)
@@ -189,6 +196,7 @@ export default function MusicPlayer() {
         onChange={(e) => {
           const v = Number(e.target.value);
           setVolume(v);
+          localStorage.setItem("mp-vol", String(v));
           if (audioRef.current) audioRef.current.volume = v;
         }}
         aria-label="Volume"
