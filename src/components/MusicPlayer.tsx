@@ -169,7 +169,6 @@ export default function MusicPlayer() {
     <div className="music-player">
       <audio ref={audioRef} onEnded={() => go(1)} onError={() => go(1)} preload="auto" />
       <canvas ref={canvasRef} className="music-visualizer" width={196} height={36} />
-      <p className="music-title">{tracks[currentIdx]?.title ?? ""}</p>
       <div className="music-bar">
         <button className="music-btn" onClick={() => go(-1)} aria-label="Previous">◂</button>
         <button className="music-btn music-play" onClick={togglePlay} aria-label={playing ? "Pause" : "Play"}>
