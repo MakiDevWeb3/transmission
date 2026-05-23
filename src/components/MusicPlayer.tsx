@@ -34,6 +34,7 @@ export default function MusicPlayer() {
 
   const startViz = useCallback(() => {
     if (animFrameRef.current || !canvasRef.current || !analyserRef.current) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const canvas = canvasRef.current;
     const analyser = analyserRef.current;
     const ctx2d = canvas.getContext("2d");
