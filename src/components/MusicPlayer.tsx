@@ -11,6 +11,7 @@ export default function MusicPlayer() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
   const [volume, setVolume] = useState(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -22,6 +23,7 @@ export default function MusicPlayer() {
   const smoothRef = useRef<Float32Array>(new Float32Array(BAR_COUNT));
 
   useEffect(() => { playingRef.current = playing; }, [playing]);
+  useEffect(() => { if (playing) setHasStarted(true); }, [playing]);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}music/playlist.json`)
@@ -171,11 +173,12 @@ export default function MusicPlayer() {
       <canvas ref={canvasRef} className="music-visualizer" width={196} height={36} />
       <div className="music-bar">
         <button className="music-btn" onClick={() => go(-1)} aria-label="Previous">◂</button>
-        <button className="music-btn music-play" onClick={togglePlay} aria-label={playing ? "Pause" : "Play"}>
+        <button className={`music-btn music-play${!hasStarted ? " music-play--pulse" : ""}`} onClick={togglePlay} aria-label={playing ? "Pause" : "Play"}>
           {playing ? "⏸" : "▶"}
         </button>
         <button className="music-btn" onClick={() => go(1)} aria-label="Next">▸</button>
       </div>
+      <span className="music-track-num">{currentIdx + 1} / {tracks.length}</span>
       <input
         className="music-volume"
         type="range"

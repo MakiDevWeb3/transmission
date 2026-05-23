@@ -261,17 +261,23 @@ body {
   border-radius: 3px;
 }
 
-.music-title {
+@keyframes playerPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.music-play--pulse {
+  animation: playerPulse 1.8s ease-in-out infinite;
+}
+
+.music-track-num {
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   font-weight: 300;
-  letter-spacing: 0.09em;
-  color: rgba(199, 125, 255, 0.5);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 5px;
+  letter-spacing: 0.18em;
+  color: rgba(157, 78, 221, 0.35);
   text-align: center;
+  margin-top: 4px;
 }
 
 .music-bar {
