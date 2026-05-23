@@ -224,6 +224,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .avatar-ring { animation: none; }
   .avatar-wrap, .discord-row, .title, .tagline, .btn-join, .invite-link, .music-player { animation: none; }
+  .music-play--pulse { animation: none; }
 }
 
 @keyframes fadeUp {
