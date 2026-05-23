@@ -12,6 +12,7 @@ export default function MusicPlayer() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
+  const [progress, setProgress] = useState(0);
   const [volume, setVolume] = useState(() => {
     const saved = localStorage.getItem("mp-vol");
     return saved !== null ? Number(saved) : 1;
@@ -176,7 +177,16 @@ export default function MusicPlayer() {
 
   return (
     <div className="music-player">
-      <audio ref={audioRef} onEnded={() => go(1)} onError={() => go(1)} preload="auto" />
+      <audio
+        ref={audioRef}
+        onEnded={() => go(1)}
+        onError={() => go(1)}
+        onTimeUpdate={(e) => {
+          const a = e.currentTarget;
+          if (a.duration) setProgress(a.currentTime / a.duration);
+        }}
+        preload="auto"
+      />
       <canvas ref={canvasRef} className="music-visualizer" width={196} height={36} />
       <div className="music-bar">
         <button className="music-btn" onClick={() => go(-1)} aria-label="Previous">◂</button>
@@ -186,6 +196,22 @@ export default function MusicPlayer() {
         <button className="music-btn" onClick={() => go(1)} aria-label="Next">▸</button>
       </div>
       <span className="music-track-num">{muted ? "🔇 " : ""}{currentIdx + 1} / {tracks.length}</span>
+      <input
+        className="music-seek"
+        type="range"
+        min={0}
+        max={1}
+        step={0.001}
+        value={progress}
+        onChange={(e) => {
+          const v = Number(e.target.value);
+          setProgress(v);
+          if (audioRef.current && audioRef.current.duration) {
+            audioRef.current.currentTime = v * audioRef.current.duration;
+          }
+        }}
+        aria-label="Seek"
+      />
       <input
         className="music-volume"
         type="range"
