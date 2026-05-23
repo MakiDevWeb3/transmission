@@ -11,9 +11,7 @@ export default function MusicPlayer() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const seekingRef = useRef(false);
+  const [volume, setVolume] = useState(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const playingRef = useRef(false);
@@ -169,17 +167,7 @@ export default function MusicPlayer() {
 
   return (
     <div className="music-player">
-      <audio
-        ref={audioRef}
-        onEnded={() => go(1)}
-        onError={() => go(1)}
-        preload="auto"
-        onTimeUpdate={(e) => {
-          if (!seekingRef.current) setProgress(e.currentTarget.currentTime);
-        }}
-        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-        onDurationChange={(e) => setDuration(e.currentTarget.duration)}
-      />
+      <audio ref={audioRef} onEnded={() => go(1)} onError={() => go(1)} preload="auto" />
       <canvas ref={canvasRef} className="music-visualizer" width={196} height={36} />
       <p className="music-title">{tracks[currentIdx]?.title ?? ""}</p>
       <div className="music-bar">
@@ -193,20 +181,15 @@ export default function MusicPlayer() {
         className="music-seek"
         type="range"
         min={0}
-        max={duration || 1}
-        step={0.1}
-        value={progress}
-        onMouseDown={() => { seekingRef.current = true; }}
-        onChange={(e) => setProgress(Number(e.target.value))}
-        onMouseUp={(e) => {
-          seekingRef.current = false;
-          if (audioRef.current) audioRef.current.currentTime = Number((e.target as HTMLInputElement).value);
+        max={1}
+        step={0.01}
+        value={volume}
+        onChange={(e) => {
+          const v = Number(e.target.value);
+          setVolume(v);
+          if (audioRef.current) audioRef.current.volume = v;
         }}
-        onTouchEnd={(e) => {
-          seekingRef.current = false;
-          if (audioRef.current) audioRef.current.currentTime = Number((e.target as HTMLInputElement).value);
-        }}
-        aria-label="Seek"
+        aria-label="Volume"
       />
     </div>
   );
