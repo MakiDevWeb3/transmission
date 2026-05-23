@@ -107,17 +107,25 @@ export default function MusicPlayer() {
     if (ctx.state === "suspended") await ctx.resume();
   }, []);
 
-  // Unmute on first interaction
+  // Unmute on first interaction — also starts playback if autoplay was blocked (iOS Safari)
   useEffect(() => {
     if (!tracks.length) return;
     const ac = new AbortController();
     const onInteract = async () => {
       ac.abort();
-      if (audioRef.current) {
-        audioRef.current.muted = false;
-        setMuted(false);
-      }
+      const audio = audioRef.current;
+      if (!audio) return;
+      audio.muted = false;
+      setMuted(false);
       await ensureAudioCtx();
+      if (audio.paused) {
+        // Autoplay was blocked (iOS Safari) — start now on user gesture
+        audio.volume = volumeRef.current;
+        try {
+          await audio.play();
+          setPlaying(true);
+        } catch {}
+      }
       startViz();
     };
     const { signal } = ac;
