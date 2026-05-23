@@ -178,7 +178,7 @@ export default function MusicPlayer() {
         <button className="music-btn" onClick={() => go(1)} aria-label="Next">▸</button>
       </div>
       <input
-        className="music-seek"
+        className="music-volume"
         type="range"
         min={0}
         max={1}

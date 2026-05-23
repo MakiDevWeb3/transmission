@@ -308,7 +308,7 @@ body {
 
 
 /* ── Seek bar ── */
-.music-seek {
+.music-volume {
   width: 100%;
   margin-top: 6px;
   -webkit-appearance: none;
@@ -320,7 +320,7 @@ body {
   cursor: pointer;
 }
 
-.music-seek::-webkit-slider-thumb {
+.music-volume::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 8px;
@@ -331,12 +331,12 @@ body {
   transition: background 0.2s, transform 0.2s;
 }
 
-.music-seek::-webkit-slider-thumb:hover {
+.music-volume::-webkit-slider-thumb:hover {
   background: #c77dff;
   transform: scale(1.4);
 }
 
-.music-seek::-moz-range-thumb {
+.music-volume::-moz-range-thumb {
   width: 8px;
   height: 8px;
   border: none;
