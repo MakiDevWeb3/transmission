@@ -11,7 +11,7 @@ export default function MusicPlayer() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [hasStarted, setHasStarted] = useState(false);
+  const [muted, setMuted] = useState(true);
   const [volume, setVolume] = useState(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -23,7 +23,6 @@ export default function MusicPlayer() {
   const smoothRef = useRef<Float32Array>(new Float32Array(BAR_COUNT));
 
   useEffect(() => { playingRef.current = playing; }, [playing]);
-  useEffect(() => { if (playing) setHasStarted(true); }, [playing]);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}music/playlist.json`)
@@ -96,31 +95,26 @@ export default function MusicPlayer() {
     if (ctx.state === "suspended") await ctx.resume();
   }, []);
 
-  // Autoplay: try immediately, fallback to first user interaction
+  // Muted autoplay — browsers allow muted audio without user gesture
   useEffect(() => {
     if (!tracks.length || !audioRef.current) return;
 
-    const tryAutoPlay = async () => {
-      await ensureAudioCtx();
-      try {
-        await audioRef.current!.play();
-        setPlaying(true);
-        startViz();
-      } catch {}
-    };
+    const audio = audioRef.current;
+    audio.muted = true;
+    audio.play()
+      .then(() => setPlaying(true))
+      .catch(() => {});
 
-    tryAutoPlay();
-
+    // First interaction: unmute + start AudioContext + visualizer
     const ac = new AbortController();
     const onInteract = async () => {
-      if (playingRef.current) return;
       ac.abort();
+      if (audioRef.current) {
+        audioRef.current.muted = false;
+        setMuted(false);
+      }
       await ensureAudioCtx();
-      try {
-        await audioRef.current!.play();
-        setPlaying(true);
-        startViz();
-      } catch {}
+      startViz();
     };
 
     const { signal } = ac;
@@ -138,6 +132,10 @@ export default function MusicPlayer() {
       stopViz();
       setPlaying(false);
     } else {
+      if (audioRef.current.muted) {
+        audioRef.current.muted = false;
+        setMuted(false);
+      }
       await ensureAudioCtx();
       if (audioCtxRef.current?.state === "suspended") {
         await audioCtxRef.current.resume();
@@ -158,7 +156,9 @@ export default function MusicPlayer() {
     const audio = audioRef.current;
     if (!audio || !tracks[currentIdx]) return;
     const was = playingRef.current;
+    const wasMuted = audio.muted;
     audio.src = `${import.meta.env.BASE_URL}music/${encodeURIComponent(tracks[currentIdx].file)}`;
+    audio.muted = wasMuted;
     audio.load();
     if (was) audio.play().catch(() => {});
   }, [currentIdx, tracks]);
@@ -173,12 +173,12 @@ export default function MusicPlayer() {
       <canvas ref={canvasRef} className="music-visualizer" width={196} height={36} />
       <div className="music-bar">
         <button className="music-btn" onClick={() => go(-1)} aria-label="Previous">◂</button>
-        <button className={`music-btn music-play${!hasStarted ? " music-play--pulse" : ""}`} onClick={togglePlay} aria-label={playing ? "Pause" : "Play"}>
+        <button className="music-btn music-play" onClick={togglePlay} aria-label={playing ? "Pause" : "Play"}>
           {playing ? "⏸" : "▶"}
         </button>
         <button className="music-btn" onClick={() => go(1)} aria-label="Next">▸</button>
       </div>
-      <span className="music-track-num">{currentIdx + 1} / {tracks.length}</span>
+      <span className="music-track-num">{muted ? "🔇 " : ""}{currentIdx + 1} / {tracks.length}</span>
       <input
         className="music-volume"
         type="range"
