@@ -165,10 +165,39 @@ export default function MusicPlayer() {
     if (!audio || !tracks[currentIdx]) return;
     const was = playingRef.current;
     const wasMuted = audio.muted;
-    audio.src = `${import.meta.env.BASE_URL}music/${encodeURIComponent(tracks[currentIdx].file)}`;
-    audio.muted = wasMuted;
-    audio.load();
-    if (was) audio.play().catch(() => {});
+    const targetVol = audio.volume;
+
+    const load = () => {
+      audio.src = `${import.meta.env.BASE_URL}music/${encodeURIComponent(tracks[currentIdx].file)}`;
+      audio.muted = wasMuted;
+      audio.volume = 0;
+      audio.load();
+      if (was) {
+        audio.play().catch(() => {});
+        // Fade in
+        let v = 0;
+        const step = () => {
+          v = Math.min(v + 0.05, targetVol);
+          audio.volume = v;
+          if (v < targetVol) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }
+    };
+
+    if (was && !audio.paused) {
+      // Fade out current track then switch
+      let v = audio.volume;
+      const step = () => {
+        v = Math.max(v - 0.05, 0);
+        audio.volume = v;
+        if (v > 0) requestAnimationFrame(step);
+        else load();
+      };
+      requestAnimationFrame(step);
+    } else {
+      load();
+    }
   }, [currentIdx, tracks]);
 
   useEffect(() => () => cancelAnimationFrame(animFrameRef.current), []);
