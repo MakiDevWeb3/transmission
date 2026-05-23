@@ -11,7 +11,7 @@ export default function MusicPlayer() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [muted, setMuted] = useState(true);
+  const [showPrompt, setShowPrompt] = useState(true);
   const [progress, setProgress] = useState(0);
   const [volume, setVolume] = useState(() => {
     const saved = localStorage.getItem("mp-vol");
@@ -27,7 +27,6 @@ export default function MusicPlayer() {
   const ctxReadyRef = useRef(false);
   const smoothRef = useRef<Float32Array>(new Float32Array(BAR_COUNT));
   const volumeRef = useRef(volume);
-  const hasAutoStartedRef = useRef(false);
 
   useEffect(() => { playingRef.current = playing; }, [playing]);
   useEffect(() => { volumeRef.current = volume; }, [volume]);
@@ -107,83 +106,64 @@ export default function MusicPlayer() {
     if (ctx.state === "suspended") await ctx.resume();
   }, []);
 
-  // Unmute on first interaction — also starts playback if autoplay was blocked (iOS Safari)
-  useEffect(() => {
-    if (!tracks.length) return;
-    const ac = new AbortController();
-    const onInteract = async () => {
-      ac.abort();
-      const audio = audioRef.current;
-      if (!audio) return;
-      audio.muted = false;
-      setMuted(false);
-      await ensureAudioCtx();
-      if (audio.paused) {
-        // Autoplay was blocked (iOS Safari) — start now on user gesture
-        audio.volume = volumeRef.current;
-        try {
-          await audio.play();
-          setPlaying(true);
-        } catch {}
-      }
+  // Prompt accept — click IS the user gesture, audio.play() works everywhere
+  const handleAccept = useCallback(async () => {
+    setShowPrompt(false);
+    const audio = audioRef.current;
+    if (!audio) return;
+    await ensureAudioCtx();
+    if (audioCtxRef.current?.state === "suspended") {
+      await audioCtxRef.current.resume();
+    }
+    audio.volume = volumeRef.current;
+    try {
+      await audio.play();
+      setPlaying(true);
       startViz();
-    };
-    const { signal } = ac;
-    document.addEventListener("click", onInteract, { signal });
-    document.addEventListener("keydown", onInteract, { signal });
-    document.addEventListener("touchstart", onInteract, { signal });
-    return () => ac.abort();
-  }, [tracks, ensureAudioCtx, startViz]);
+    } catch {}
+  }, [ensureAudioCtx, startViz]);
 
-  // Track change + initial muted autoplay (consolidated to fix race with src)
+  const handleDecline = useCallback(() => setShowPrompt(false), []);
+
+  // Track change + crossfade
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !tracks[currentIdx]) return;
 
     const was = playingRef.current;
-    const wasMuted = audio.muted;
-    const isFirstLoad = !hasAutoStartedRef.current;
-
     setProgress(0);
 
-    const loadAndPlay = (shouldPlay: boolean, startMuted: boolean) => {
+    const loadAndPlay = (shouldPlay: boolean) => {
       audio.src = `${import.meta.env.BASE_URL}music/${encodeURIComponent(tracks[currentIdx].file)}`;
-      audio.muted = startMuted;
-      audio.volume = 0;
       audio.load();
-      if (shouldPlay) {
-        audio.play()
-          .then(() => {
-            setPlaying(true);
-            const target = volumeRef.current;
-            let v = 0;
-            const fadeIn = () => {
-              v = Math.min(v + 0.05, target);
-              audio.volume = v;
-              if (v < target) requestAnimationFrame(fadeIn);
-            };
-            requestAnimationFrame(fadeIn);
-          })
-          .catch(() => {});
-      }
+      if (!shouldPlay) return;
+      audio.volume = 0;
+      audio.play()
+        .then(() => {
+          setPlaying(true);
+          const target = volumeRef.current;
+          let v = 0;
+          const fadeIn = () => {
+            v = Math.min(v + 0.05, target);
+            audio.volume = v;
+            if (v < target) requestAnimationFrame(fadeIn);
+          };
+          requestAnimationFrame(fadeIn);
+        })
+        .catch(() => {});
     };
 
-    if (isFirstLoad) {
-      hasAutoStartedRef.current = true;
-      // Muted autoplay — always succeeds, no user gesture needed
-      loadAndPlay(true, true);
-    } else if (was && !audio.paused) {
-      // Crossfade: fade out then switch
+    if (was && !audio.paused) {
       let v = audio.volume;
       const fadeOut = () => {
         v = Math.max(v - 0.05, 0);
         audio.volume = v;
         if (v > 0) requestAnimationFrame(fadeOut);
-        else loadAndPlay(true, wasMuted);
+        else loadAndPlay(true);
       };
       requestAnimationFrame(fadeOut);
     } else {
-      loadAndPlay(was, wasMuted);
+      loadAndPlay(was);
     }
   }, [currentIdx, tracks]);
 
@@ -194,10 +174,6 @@ export default function MusicPlayer() {
       stopViz();
       setPlaying(false);
     } else {
-      if (audioRef.current.muted) {
-        audioRef.current.muted = false;
-        setMuted(false);
-      }
       await ensureAudioCtx();
       if (audioCtxRef.current?.state === "suspended") {
         await audioCtxRef.current.resume();
@@ -219,57 +195,71 @@ export default function MusicPlayer() {
   if (!tracks.length) return null;
 
   return (
-    <div className="music-player">
-      <audio
-        ref={audioRef}
-        onEnded={() => go(1)}
-        onError={() => go(1)}
-        onTimeUpdate={(e) => {
-          const a = e.currentTarget;
-          if (a.duration) setProgress(a.currentTime / a.duration);
-        }}
-        preload="auto"
-      />
-      <canvas ref={canvasRef} className="music-visualizer" width={196} height={36} />
-      <div className="music-bar">
-        <button className="music-btn" onClick={() => go(-1)} aria-label="Previous">◂</button>
-        <button className="music-btn music-play" onClick={togglePlay} aria-label={playing ? "Pause" : "Play"}>
-          {playing ? "⏸" : "▶"}
-        </button>
-        <button className="music-btn" onClick={() => go(1)} aria-label="Next">▸</button>
+    <>
+      {showPrompt && (
+        <div className="music-prompt-overlay">
+          <div className="music-prompt">
+            <button className="music-prompt-close" onClick={handleDecline} aria-label="Fermer">✕</button>
+            <p className="music-prompt-text">Écouter la musique ?</p>
+            <div className="music-prompt-actions">
+              <button className="music-prompt-btn music-prompt-btn--decline" onClick={handleDecline}>Non</button>
+              <button className="music-prompt-btn music-prompt-btn--accept" onClick={handleAccept}>▶ Lancer</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="music-player">
+        <audio
+          ref={audioRef}
+          onEnded={() => go(1)}
+          onError={() => go(1)}
+          onTimeUpdate={(e) => {
+            const a = e.currentTarget;
+            if (a.duration) setProgress(a.currentTime / a.duration);
+          }}
+          preload="auto"
+        />
+        <canvas ref={canvasRef} className="music-visualizer" width={196} height={36} />
+        <div className="music-bar">
+          <button className="music-btn" onClick={() => go(-1)} aria-label="Previous">◂</button>
+          <button className="music-btn music-play" onClick={togglePlay} aria-label={playing ? "Pause" : "Play"}>
+            {playing ? "⏸" : "▶"}
+          </button>
+          <button className="music-btn" onClick={() => go(1)} aria-label="Next">▸</button>
+        </div>
+        <span className="music-track-num">{currentIdx + 1} / {tracks.length}</span>
+        <input
+          className="music-seek"
+          type="range"
+          min={0}
+          max={1}
+          step={0.001}
+          value={progress}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            setProgress(v);
+            if (audioRef.current && audioRef.current.duration) {
+              audioRef.current.currentTime = v * audioRef.current.duration;
+            }
+          }}
+          aria-label="Seek"
+        />
+        <input
+          className="music-volume"
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={volume}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            setVolume(v);
+            localStorage.setItem("mp-vol", String(v));
+            if (audioRef.current) audioRef.current.volume = v;
+          }}
+          aria-label="Volume"
+        />
       </div>
-      <span className="music-track-num">{muted ? "🔇 " : ""}{currentIdx + 1} / {tracks.length}</span>
-      <input
-        className="music-seek"
-        type="range"
-        min={0}
-        max={1}
-        step={0.001}
-        value={progress}
-        onChange={(e) => {
-          const v = Number(e.target.value);
-          setProgress(v);
-          if (audioRef.current && audioRef.current.duration) {
-            audioRef.current.currentTime = v * audioRef.current.duration;
-          }
-        }}
-        aria-label="Seek"
-      />
-      <input
-        className="music-volume"
-        type="range"
-        min={0}
-        max={1}
-        step={0.01}
-        value={volume}
-        onChange={(e) => {
-          const v = Number(e.target.value);
-          setVolume(v);
-          localStorage.setItem("mp-vol", String(v));
-          if (audioRef.current) audioRef.current.volume = v;
-        }}
-        aria-label="Volume"
-      />
-    </div>
+    </>
   );
 }

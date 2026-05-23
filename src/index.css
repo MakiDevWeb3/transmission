@@ -238,6 +238,114 @@ body {
   }
 }
 
+/* ── Music prompt popup ── */
+.music-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 4, 12, 0.55);
+  backdrop-filter: blur(6px);
+  animation: fadeIn 0.3s ease both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.music-prompt {
+  position: relative;
+  background: rgba(10, 8, 20, 0.92);
+  border: 1px solid rgba(157, 78, 221, 0.28);
+  border-radius: 8px;
+  padding: 1.8rem 2.2rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.3rem;
+  box-shadow:
+    0 0 0 0.5px rgba(199, 125, 255, 0.08) inset,
+    0 16px 48px rgba(0, 0, 0, 0.7),
+    0 0 40px rgba(157, 78, 221, 0.08);
+  animation: fadeUp 0.3s ease both;
+  min-width: 240px;
+}
+
+.music-prompt-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.6rem;
+  background: none;
+  border: none;
+  color: rgba(157, 78, 221, 0.35);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 4px 7px;
+  border-radius: 4px;
+  transition: color 0.2s;
+  line-height: 1;
+}
+
+.music-prompt-close:hover {
+  color: rgba(224, 170, 255, 0.7);
+}
+
+.music-prompt-text {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  color: rgba(224, 170, 255, 0.85);
+  text-align: center;
+}
+
+.music-prompt-actions {
+  display: flex;
+  gap: 0.7rem;
+}
+
+.music-prompt-btn {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 0.88rem;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.45rem 1.1rem;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.music-prompt-btn--accept {
+  background: rgba(157, 78, 221, 0.18);
+  border: 1px solid rgba(157, 78, 221, 0.4);
+  color: rgba(224, 170, 255, 0.9);
+}
+
+.music-prompt-btn--accept:hover {
+  background: rgba(157, 78, 221, 0.32);
+  border-color: rgba(199, 125, 255, 0.6);
+  color: #ecdcff;
+}
+
+.music-prompt-btn--decline {
+  background: none;
+  border: 1px solid rgba(157, 78, 221, 0.14);
+  color: rgba(157, 78, 221, 0.4);
+}
+
+.music-prompt-btn--decline:hover {
+  border-color: rgba(157, 78, 221, 0.28);
+  color: rgba(157, 78, 221, 0.65);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .music-prompt-overlay, .music-prompt { animation: none; }
+}
+
 /* ── Music player ── */
 .music-player {
   position: fixed;
