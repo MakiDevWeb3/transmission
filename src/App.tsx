@@ -7,7 +7,7 @@ export default function App() {
       {/* 4K video background */}
       <video
         className="bg-video"
-        src="/bg.mp4"
+        src={`${import.meta.env.BASE_URL}bg.mp4`}
         autoPlay
         loop
         muted
@@ -29,7 +29,7 @@ export default function App() {
           <div className="avatar-ring" />
           <img
             className="avatar-img"
-            src="/saitama.png"
+            src={`${import.meta.env.BASE_URL}saitama.png`}
             alt="Transmission"
           />
         </div>

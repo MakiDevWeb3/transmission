@@ -23,7 +23,7 @@ export default function MusicPlayer() {
   useEffect(() => { playingRef.current = playing; }, [playing]);
 
   useEffect(() => {
-    fetch("/music/playlist.json")
+    fetch(`${import.meta.env.BASE_URL}music/playlist.json`)
       .then((r) => r.json())
       .then((data: Track[]) => {
         if (Array.isArray(data) && data.length) setTracks(data);
@@ -155,7 +155,7 @@ export default function MusicPlayer() {
     const audio = audioRef.current;
     if (!audio || !tracks[currentIdx]) return;
     const was = playingRef.current;
-    audio.src = `/music/${encodeURIComponent(tracks[currentIdx].file)}`;
+    audio.src = `${import.meta.env.BASE_URL}music/${encodeURIComponent(tracks[currentIdx].file)}`;
     audio.load();
     if (was) audio.play().catch(() => {});
   }, [currentIdx, tracks]);
