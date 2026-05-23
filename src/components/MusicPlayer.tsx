@@ -11,6 +11,9 @@ export default function MusicPlayer() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const seekingRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const playingRef = useRef(false);
@@ -166,7 +169,17 @@ export default function MusicPlayer() {
 
   return (
     <div className="music-player">
-      <audio ref={audioRef} onEnded={() => go(1)} onError={() => go(1)} preload="auto" />
+      <audio
+        ref={audioRef}
+        onEnded={() => go(1)}
+        onError={() => go(1)}
+        preload="auto"
+        onTimeUpdate={(e) => {
+          if (!seekingRef.current) setProgress(e.currentTarget.currentTime);
+        }}
+        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+        onDurationChange={(e) => setDuration(e.currentTarget.duration)}
+      />
       <canvas ref={canvasRef} className="music-visualizer" width={196} height={36} />
       <p className="music-title">{tracks[currentIdx]?.title ?? ""}</p>
       <div className="music-bar">
@@ -176,6 +189,25 @@ export default function MusicPlayer() {
         </button>
         <button className="music-btn" onClick={() => go(1)} aria-label="Next">▸</button>
       </div>
+      <input
+        className="music-seek"
+        type="range"
+        min={0}
+        max={duration || 1}
+        step={0.1}
+        value={progress}
+        onMouseDown={() => { seekingRef.current = true; }}
+        onChange={(e) => setProgress(Number(e.target.value))}
+        onMouseUp={(e) => {
+          seekingRef.current = false;
+          if (audioRef.current) audioRef.current.currentTime = Number((e.target as HTMLInputElement).value);
+        }}
+        onTouchEnd={(e) => {
+          seekingRef.current = false;
+          if (audioRef.current) audioRef.current.currentTime = Number((e.target as HTMLInputElement).value);
+        }}
+        aria-label="Seek"
+      />
     </div>
   );
 }

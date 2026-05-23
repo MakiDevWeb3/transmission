@@ -307,6 +307,44 @@ body {
 }
 
 
+/* ── Seek bar ── */
+.music-seek {
+  width: 100%;
+  margin-top: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(157, 78, 221, 0.2);
+  outline: none;
+  cursor: pointer;
+}
+
+.music-seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(199, 125, 255, 0.8);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.music-seek::-webkit-slider-thumb:hover {
+  background: #c77dff;
+  transform: scale(1.4);
+}
+
+.music-seek::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(199, 125, 255, 0.8);
+  cursor: pointer;
+}
+
 /* ── View counter (inline next to Discord icon) ── */
 .view-counter {
   display: flex;
