@@ -13,7 +13,6 @@ export default function App() {
         muted
         playsInline
         aria-hidden="true"
-        ref={(v) => { if (v) v.play().catch(() => {}); }}
       />
 
       {/* Dark vignette overlay */}

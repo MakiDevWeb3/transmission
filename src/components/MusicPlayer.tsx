@@ -108,8 +108,10 @@ export default function MusicPlayer() {
 
     tryAutoPlay();
 
+    const ac = new AbortController();
     const onInteract = async () => {
       if (playingRef.current) return;
+      ac.abort();
       await ensureAudioCtx();
       try {
         await audioRef.current!.play();
@@ -118,15 +120,12 @@ export default function MusicPlayer() {
       } catch {}
     };
 
-    document.addEventListener("click", onInteract, { once: true });
-    document.addEventListener("keydown", onInteract, { once: true });
-    document.addEventListener("touchstart", onInteract, { once: true });
+    const { signal } = ac;
+    document.addEventListener("click", onInteract, { signal });
+    document.addEventListener("keydown", onInteract, { signal });
+    document.addEventListener("touchstart", onInteract, { signal });
 
-    return () => {
-      document.removeEventListener("click", onInteract);
-      document.removeEventListener("keydown", onInteract);
-      document.removeEventListener("touchstart", onInteract);
-    };
+    return () => ac.abort();
   }, [tracks, ensureAudioCtx, startViz]);
 
   const togglePlay = async () => {

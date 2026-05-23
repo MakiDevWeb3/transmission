@@ -176,7 +176,6 @@ body {
   border-radius: 3px;
   background: rgba(10, 8, 20, 0.45);
   backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
   box-shadow:
     0 0 0 0.5px rgba(199, 125, 255, 0.1) inset,
     0 8px 32px rgba(0, 0, 0, 0.5),
@@ -222,6 +221,11 @@ body {
 }
 
 /* ── Fade in from below ── */
+@media (prefers-reduced-motion: reduce) {
+  .avatar-ring { animation: none; }
+  .avatar-wrap, .discord-row, .title, .tagline, .btn-join, .invite-link, .music-player { animation: none; }
+}
+
 @keyframes fadeUp {
   from {
     opacity: 0;
