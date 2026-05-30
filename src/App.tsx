@@ -61,7 +61,7 @@ export default function App() {
         {/* CTA */}
         <a
           className="btn-join"
-          href="https://discord.gg/qdpynUKAd"
+          href="https://discord.gg/WFfG3tpFc5"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -71,7 +71,7 @@ export default function App() {
         {/* Invite link */}
         <a
           className="invite-link"
-          href="https://discord.gg/qdpynUKAd"
+          href="https://discord.gg/WFfG3tpFc5"
           target="_blank"
           rel="noopener noreferrer"
         >
