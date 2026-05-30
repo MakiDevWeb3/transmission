@@ -75,7 +75,7 @@ export default function App() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          discord.gg/qdpynUKAd
+          https://discord.gg/WFfG3tpFc5
         </a>
       </main>
 
